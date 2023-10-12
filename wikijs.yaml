@@ -1,0 +1,81 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: kompose convert -f wikijks.yaml --volumes hostPath
+    kompose.version: 1.26.1 (a9d05d509)
+  creationTimestamp: null
+  labels:
+    io.kompose.service: wikijs
+    app: wikijs
+  name: wikijs
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: wikijs
+      app: wikijs
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert -f wikijks.yaml --volumes hostPath
+        kompose.version: 1.26.1 (a9d05d509)
+      creationTimestamp: null
+      labels:
+        io.kompose.service: wikijs
+        app: wikijs
+    spec:
+      containers:
+        - env:
+            - name: DB_HOST
+              value: prod-postgresql.default.svc.cluster.local
+            - name: DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: wikijs-postgres-secret
+                  key: POSTGRES_DB
+            - name: DB_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: wikijs-postgres-secret
+                  key: POSTGRES_PASSWORD
+            - name: DB_PORT
+              value: "5432"
+            - name: DB_TYPE
+              value: postgres 
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: wikijs-postgres-secret
+                  key: POSTGRES_USER
+          image: ghcr.io/requarks/wiki
+          name: wikijs
+          ports:
+            - containerPort: 3000
+          resources: {}
+          volumeMounts:
+            - mountPath: /config
+              name: wikijs-hostpath0
+      restartPolicy: Always
+      volumes:
+        - hostPath:
+            path: /root/wikijs/Wikijs
+          name: wikijs-hostpath0
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: wikijs
+  name: wikijs-service
+spec:
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 3000
+  selector:
+    app: wikijs
+
+
